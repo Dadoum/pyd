@@ -362,7 +362,15 @@ void add_module(Options...)() {
         pyd_moduledefs[modulename] = modl;
         pyd_module_classes[modulename] = (void delegate()[string]).init;
 
-        PyImport_AppendInittab(modulename.ptr, &Py3_ModuleInit!modulename.func);
+        if (Py_IsInitialized()) {
+            PyImport_AddModule("");
+            PyObject* pyModule = Py3_ModuleInit!"".func();
+            PyObject* sys_modules = PyImport_GetModuleDict();
+            PyDict_SetItemString(sys_modules, "", pyModule);
+            Py_DECREF(pyModule);
+        } else {
+            PyImport_AppendInittab(modulename.ptr, &Py3_ModuleInit!modulename.func);
+        }
     }else{
         // schizophrenic arrangements, these
         version(PydPythonExtension) {
